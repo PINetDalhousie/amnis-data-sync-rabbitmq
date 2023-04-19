@@ -16,6 +16,10 @@ Install Pika
 
 ```python -m pip install pika --upgrade```
 
+To Uninstall
+
+```sudo apt-get purge rabbitmq-server erlang*```
+
 ## Usage
 
 ```python main.py```

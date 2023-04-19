@@ -6,6 +6,7 @@ from mininet.node import RemoteController
 from mininet.link import TCLink
 from mininet.topo import Topo
 from mininet.node import OVSKernelSwitch, Host
+from mininet.log import setLogLevel
 import sys
 import subprocess
 import networkx as nx
@@ -44,9 +45,9 @@ class CustomTopo(Topo):
 class MininetLib:
     def __init__(self) -> None:
         self.net = None
-        print("")
+        setLogLevel('info')
 
-    def start(self, topo_file):
+    def start(self, topo_file, sleep_duration=30):
         print("Starting mininet")
         #Clean up mininet state
         subprocess.Popen("sudo mn -c", shell=True)
@@ -76,6 +77,9 @@ class MininetLib:
         print("Testing network connectivity")
         self.net.pingAll()
         print("Finished network connectivity test")
+        
+        print(f"Sleeping for {sleep_duration}s to allow network to start")
+        time.sleep(sleep_duration)
 
     def stop(self):
         print("Stopping Network")
