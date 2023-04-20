@@ -77,7 +77,7 @@ class MininetLib:
         print("Testing network connectivity")
         self.net.pingAll()
         print("Finished network connectivity test")
-        #CLI(self.net)
+        #CLI(self.net) # Uncomment and run "h1 xterm &" for debugging
         print(f"Sleeping for {sleep_duration}s to allow network to start")
         time.sleep(sleep_duration)
 
