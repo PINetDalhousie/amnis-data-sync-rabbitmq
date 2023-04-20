@@ -51,7 +51,6 @@ if __name__ == '__main__':
     # Start mininet
     mininet = MininetLib()
     mininet.start("topologies/" + topology_file)
-
     # Run RabbitMQ server on each node
     print("Starting servers")
     port = 5672
@@ -79,7 +78,7 @@ if __name__ == '__main__':
         if debug:
             time.sleep(3)            
             cluster_status = h.cmd('rabbitmqctl cluster_status -n rabbit@10.0.0.' + node_id)
-            logging.info(f"Cluster status of node {node_id}:\n" + cluster_status)        
+            logging.info(f"Cluster status of node {node_id}:\n" + cluster_status)
 
 
     sleep_duration = 60
