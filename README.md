@@ -16,13 +16,17 @@ Install Pika
 
 ```python -m pip install pika --upgrade```
 
-To Uninstall
+Copy the Config
 
-```sudo apt-get purge rabbitmq-server erlang*```
+```sudo cp config/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf```
 
 ## Usage
 
-```python main.py```
+```sudo python main.py```
+
+## Uninstall
+
+```sudo apt-get purge rabbitmq-server erlang*```
 
 ## Architecture
 

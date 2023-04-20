@@ -1,3 +1,4 @@
+import datetime
 import os
 import subprocess
 import time
@@ -8,40 +9,55 @@ from mininet_lib import MininetLib
 from mininet.cli import CLI
 from rabbit_lib import RabbitMQLib
 
-def setup_logging():
-    # Clean existing logs
-    os.system("sudo rm -rf ./logs")
-    os.system("mkdir -p ./logs/cons ./logs/prod")    
+LOG_DIR = "./logs/" +datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') 
 
-    # Setup logger    
-    logging.basicConfig(filename="logs/events.log",
+def read_config():
+    config = configparser.ConfigParser()
+    config.read('config/config.ini')
+    # Log all the options and values for each section
+    for section in config.sections():
+        logging.info('Config values:')
+        for option, value in config.items(section):
+            logging.info(f'{option} = {value}')
+    return config
+
+def setup_logging():
+    # Create parent folder
+    os.system("mkdir " + LOG_DIR)
+    os.system("mkdir "+ LOG_DIR +"/cons")    
+    os.system("mkdir "+ LOG_DIR +"/prod")    
+
+    # Setup logger
+    filename = LOG_DIR + "/events.log"
+    logging.basicConfig(filename=filename,
                         format='%(asctime)s %(levelname)s:%(message)s',
                         level=logging.INFO)
     logging.info("Started simulation")
 
+def get_rabbitmq_logs():
+    os.system("cp -R /var/log/rabbitmq/ " + LOG_DIR +"/rabbitmq/")
 
 if __name__ == '__main__':
-
-    # Read config
-    config = configparser.ConfigParser()
-    config.read('config/config.ini')
-    test_duration = config.getint('Simulation', 'test_duration')
-    topology_file = config.get('Simulation', 'topology_file')
-    debug = config.getboolean('Simulation', 'debug')
 
     # Set logger
     setup_logging()
 
+    # Read config
+    config = read_config()
+    test_duration = config.getint('Simulation', 'test_duration')
+    topology_file = config.get('Simulation', 'topology_file')
+    debug = config.getboolean('Simulation', 'debug')
+
     # Start mininet
     mininet = MininetLib()
     mininet.start("topologies/" + topology_file)
+
     # Run RabbitMQ server on each node
     print("Starting servers")
     port = 5672
     for h in mininet.net.hosts:
         node_id = str(h.name)[1:]   
-        # Start RabbitMQ server    
-        #logging.info(h.cmd('rabbitmqctl start_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+        # Start RabbitMQ server        
         command = 'RABBITMQ_NODE_PORT=' + str(port) + ' RABBITMQ_NODENAME=rabbit@10.0.0.' + node_id + ' rabbitmq-server -detached'
         logging.info("Sending command to mininet node:\n" + command)
         out = h.cmd(command, shell=True)  
@@ -63,8 +79,7 @@ if __name__ == '__main__':
         if debug:
             time.sleep(3)            
             cluster_status = h.cmd('rabbitmqctl cluster_status -n rabbit@10.0.0.' + node_id)
-            logging.info(f"Cluster status of node {node_id}:\n" + cluster_status)
-        #port = port+1        
+            logging.info(f"Cluster status of node {node_id}:\n" + cluster_status)        
 
 
     # sleep_duration = 60
@@ -91,11 +106,16 @@ if __name__ == '__main__':
     # print(f"Running for {test_duration}s")
     # time.sleep(test_duration)
 
-    # Stop and cleanup
-
-    #for h in mininet.net.hosts:
-    #    node_id = str(h.name)[1:]   
-    #    logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+    # Stop rabbitmq nodes and cleanup
+    for h in mininet.net.hosts:
+       node_id = str(h.name)[1:]   
+       logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+       #logging.info(h.cmd('rabbitmqctl reset' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+    
+    # Clean up the database for future simulation runs
+    os.system("sudo rm -rf /var/lib/rabbitmq/mnesia")
 
     mininet.stop()
+    get_rabbitmq_logs()
     print("Simulation finished")
+    logging.info("Simulation finished")
