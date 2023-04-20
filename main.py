@@ -5,6 +5,7 @@ import configparser
 import logging
 import socket
 from mininet_lib import MininetLib
+from mininet.cli import CLI
 from rabbit_lib import RabbitMQLib
 
 def setup_logging():
@@ -34,32 +35,36 @@ if __name__ == '__main__':
     # Start mininet
     mininet = MininetLib()
     mininet.start("topologies/" + topology_file)
-
     # Run RabbitMQ server on each node
     print("Starting servers")
     port = 5672
     for h in mininet.net.hosts:
         node_id = str(h.name)[1:]   
-        # Start RabbitMQ server     
-        command = 'RABBITMQ_NODE_PORT=' + str(port) + ' RABBITMQ_NODENAME=rabbit' + node_id + ' rabbitmq-server -detached'
+        # Start RabbitMQ server    
+        #logging.info(h.cmd('rabbitmqctl start_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+        command = 'RABBITMQ_NODE_PORT=' + str(port) + ' RABBITMQ_NODENAME=rabbit@10.0.0.' + node_id + ' rabbitmq-server -detached'
         logging.info("Sending command to mininet node:\n" + command)
-        out = h.cmd(command, shell=True)      
+        out = h.cmd(command, shell=True)  
+        logging.info("Output: " + out)    
 
         if node_id == "1":
             print("Skip cluster join for first node")
-            time.sleep(5)
-            logging.info(h.cmd("rabbitmq-diagnostics status -n rabbit" + node_id , shell=True))
+            time.sleep(20)
+            logging.info("Diagnostics status")
+            logging.info(h.cmd("rabbitmq-diagnostics status -n rabbit@10.0.0." + node_id , shell=True))
         else:
-            # Join node to the cluster on rabbit1 node
-            logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit' + node_id, shell=True))
-            logging.info(h.cmd('rabbitmqctl reset' + ' -n rabbit' + node_id, shell=True))
-            logging.info(h.cmd('rabbitmqctl join_cluster rabbit1@' + socket.gethostname() + ' -n rabbit' + node_id, shell=True))
-            logging.info(h.cmd('rabbitmqctl start_app' + ' -n rabbit' + node_id, shell=True))
+            time.sleep(20)
+            # Join node to the cluster on rabbit@10.0.0.1 node
+            print("Connecting 10.0.0."+ node_id + " to cluster")
+            logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+            logging.info(h.cmd('rabbitmqctl reset' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+            logging.info(h.cmd('rabbitmqctl join_cluster rabbit@10.0.0.1' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+            logging.info(h.cmd('rabbitmqctl start_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
         if debug:
             time.sleep(3)            
-            cluster_status = h.cmd('rabbitmqctl cluster_status -n rabbit' + node_id)
+            cluster_status = h.cmd('rabbitmqctl cluster_status -n rabbit@10.0.0.' + node_id)
             logging.info(f"Cluster status of node {node_id}:\n" + cluster_status)
-        port = port+1        
+        #port = port+1        
 
 
     # sleep_duration = 60
@@ -87,5 +92,10 @@ if __name__ == '__main__':
     # time.sleep(test_duration)
 
     # Stop and cleanup
+
+    #for h in mininet.net.hosts:
+    #    node_id = str(h.name)[1:]   
+    #    logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+
     mininet.stop()
     print("Simulation finished")
