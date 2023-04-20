@@ -18,9 +18,10 @@ def callback(ch, method, properties, body):
 if __name__ == '__main__':
     try:
         node_id = sys.argv[1]
+        log_dir = sys.argv[2]
 
         # Setup logger
-        log_path = "logs/cons/cons-" + node_id + ".log"
+        log_path = log_dir + "/cons/cons-" + node_id + ".log"
         logging.basicConfig(filename=log_path,
                             format='%(asctime)s %(levelname)s:%(message)s',
                             level=logging.INFO)

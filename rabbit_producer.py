@@ -9,9 +9,10 @@ ROUTING_KEY = "test.t"
 if __name__ == '__main__':
     try:
         node_id = sys.argv[1]
+        log_dir = sys.argv[2]
 
-                # Setup logger
-        log_path = "logs/prod/prod-" + node_id + ".log"
+        # Setup logger
+        log_path = log_dir + "/prod/prod-" + node_id + ".log"
         logging.basicConfig(filename=log_path,
                             format='%(asctime)s %(levelname)s:%(message)s',
                             level=logging.INFO)

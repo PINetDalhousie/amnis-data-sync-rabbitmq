@@ -82,29 +82,32 @@ if __name__ == '__main__':
             logging.info(f"Cluster status of node {node_id}:\n" + cluster_status)        
 
 
-    # sleep_duration = 60
-    # print(f"Sleeping for {sleep_duration}s to allow RabbitMQ servers to start")
-    # time.sleep(sleep_duration)
+    sleep_duration = 60
+    print(f"Sleeping for {sleep_duration}s to allow RabbitMQ servers to start")
+    time.sleep(sleep_duration)
 
-    # # Run RabbitMQ consumer on each node
-    # print("Starting consumers")
-    # consumer_script = ""
-    # for h in mininet.net.hosts:
-    #     node_id = str(h.name)[1:]
-    #     h.popen("python3 rabbit_consumer.py " + node_id + " &", shell=True)
-    #     break
+    # Run RabbitMQ consumer on each node
+    print("Starting consumers")
+    consumer_script = ""
+    for h in mininet.net.hosts:
+        node_id = str(h.name)[1:]
+        h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR + " &", shell=True)
+        #break
 
-    # # Run a single producer
-    # print("Starting producers")
-    # for h in mininet.net.hosts:   
-    #     node_id = str(h.name)[1:]     
-    #     h.popen("python3 rabbit_producer.py " + node_id + " &", shell=True)
-    #     break
+    # Let consumers settle before sending messages
+    time.sleep(10)
 
-    # # Let simulation run for specified duration
-    # print("Simulation started")
-    # print(f"Running for {test_duration}s")
-    # time.sleep(test_duration)
+    # Run a single producer
+    print("Starting producers")
+    for h in mininet.net.hosts:   
+        node_id = str(h.name)[1:]     
+        h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)
+        #break
+
+    # Let simulation run for specified duration
+    print("Simulation started")
+    print(f"Running for {test_duration}s")
+    time.sleep(test_duration)
 
     # Stop rabbitmq nodes and cleanup
     for h in mininet.net.hosts:
