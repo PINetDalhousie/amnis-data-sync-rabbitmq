@@ -6,19 +6,31 @@ from rabbit_lib import RabbitMQLib
 
 # Binding key * (star) can substitute for exactly one word.
 # Binding key # (hash) can substitute for zero or more words.
-BINDING_KEYS = "test.#"
+BINDING_KEYS = "topic.#"
 
 
 def callback(ch, method, properties, body):
-    print(" [x] %r:%r" % (method.routing_key, body))
-    log = method.routing_key + " " + body.decode("utf-8")
-    logging.info("Message: " + log)
+    '''
+    Example Kafka Log:
+    INFO:Prod ID: 02; Message ID: 000055; Latest: False; Topic: topic-0; Offset: 27; Size: 923
+    '''
+    #message = body.decode("utf-8")
+    prod_id = properties.app_id
+    message_id = properties.message_id
+    topic = method.routing_key.split(".")[1]
+    log = "Prod ID: " + prod_id + "; Message ID: " + message_id + "; Latest: False; Topic: " + topic + "; Offset: 0; Size 1000"    
+    logging.info(log)    
 
 
 if __name__ == '__main__':
     try:
-        node_id = sys.argv[1]
-        log_dir = sys.argv[2]
+        if len(sys.argv) == 1:
+            node_id = "1"
+            log_dir = "./logs/test"
+            os.system("mkdir -p "+ log_dir +"/cons")  
+        else:
+            node_id = sys.argv[1]
+            log_dir = sys.argv[2]
 
         # Setup logger
         log_path = log_dir + "/cons/cons-" + node_id + ".log"

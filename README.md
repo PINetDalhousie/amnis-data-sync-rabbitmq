@@ -10,7 +10,7 @@ Clone the repo
 
 Install RabbitMQ
 
-```sudo apt install rabbitmq-server```
+```sudo apt install -y rabbitmq-server```
 
 Install Pika
 
@@ -26,7 +26,7 @@ Copy the Config
 
 ## Uninstall
 
-```sudo apt-get purge rabbitmq-server erlang*```
+```sudo apt-get purge -y rabbitmq-server erlang*```
 
 ## Architecture
 
