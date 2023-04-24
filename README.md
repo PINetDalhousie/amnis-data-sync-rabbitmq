@@ -18,7 +18,7 @@ Install Pika
 
 Copy the Config
 
-```sudo cp config/rabbitmq-env.conf /etc/rabbitmq/rabbitmq-env.conf```
+```sudo cp config/*.conf /etc/rabbitmq/```
 
 ## Usage
 

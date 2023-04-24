@@ -121,3 +121,7 @@ if __name__ == '__main__':
     get_rabbitmq_logs()
     print("Simulation finished")
     logging.info("Simulation finished")
+
+    print("Generating visualizations")
+    switches = len(mininet.net.hosts)
+    os.system("python3 plot-scripts/modifiedLatencyPlotScript.py --number-of-switches " + str(switches) + " --log-dir " + LOG_DIR + "/")
