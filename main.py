@@ -36,6 +36,7 @@ def setup_logging():
 
 def get_rabbitmq_logs():
     os.system("cp -R /var/log/rabbitmq/ " + LOG_DIR +"/rabbitmq/")
+    
 
 if __name__ == '__main__':
 
@@ -96,6 +97,10 @@ if __name__ == '__main__':
     # Let consumers settle before sending messages
     time.sleep(10)
 
+    # Set the network delay back to to .graphml values before spawning producers so we get accurate latency
+    mininet.setNetworkDelay()
+    time.sleep(1)
+
     # Run a single producer
     print("Starting producers")
     for h in mininet.net.hosts:   
@@ -107,7 +112,10 @@ if __name__ == '__main__':
     print("Simulation started")
     print(f"Running for {test_duration}s")
     time.sleep(test_duration)
+    print("Simulation complete\r")
+    logging.info('Simulation complete at ' + str(datetime.datetime.now()))
 
+    mininet.setNetworkDelay('1ms')
     # Stop rabbitmq nodes and cleanup
     for h in mininet.net.hosts:
        node_id = str(h.name)[1:]   
@@ -117,10 +125,13 @@ if __name__ == '__main__':
     # Clean up the database for future simulation runs
     os.system("sudo rm -rf /var/lib/rabbitmq/mnesia")
 
+    # Kill Producer Processes
+    os.system("sudo pkill -9 -f rabbit_producer.py")
+
     mininet.stop()
     get_rabbitmq_logs()
-    print("Simulation finished")
-    logging.info("Simulation finished")
+    print("Network stopped")
+    logging.info('Network stopped at ' + str(datetime.datetime.now()))
 
     print("Generating visualizations")
     switches = len(mininet.net.hosts)
