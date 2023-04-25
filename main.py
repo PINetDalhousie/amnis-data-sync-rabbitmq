@@ -82,31 +82,30 @@ if __name__ == '__main__':
             logging.info(f"Cluster status of node {node_id}:\n" + cluster_status)
 
 
-    sleep_duration = 60
+    sleep_duration = 30
     print(f"Sleeping for {sleep_duration}s to allow RabbitMQ servers to start")
     time.sleep(sleep_duration)
 
     # Run RabbitMQ consumer on each node
-    print("Starting consumers")
-    consumer_script = ""
+    print("Starting consumers")    
     for h in mininet.net.hosts:
         node_id = str(h.name)[1:]
-        h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR + " &", shell=True)
-        #break
+        h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR + " &", shell=True)        
 
     # Let consumers settle before sending messages
-    time.sleep(10)
+    sleep_duration = 30
+    print(f"Sleeping for {sleep_duration}s to allow RabbitMQ consumers to start")
+    time.sleep(sleep_duration)
 
     # Set the network delay back to to .graphml values before spawning producers so we get accurate latency
     mininet.setNetworkDelay()
-    time.sleep(1)
+    time.sleep(10)
 
     # Run a single producer
     print("Starting producers")
     for h in mininet.net.hosts:   
         node_id = str(h.name)[1:]     
-        h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)
-        #break
+        h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
 
     # Let simulation run for specified duration
     print("Simulation started")
@@ -119,8 +118,7 @@ if __name__ == '__main__':
     # Stop rabbitmq nodes and cleanup
     for h in mininet.net.hosts:
        node_id = str(h.name)[1:]   
-       logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))
-       #logging.info(h.cmd('rabbitmqctl reset' + ' -n rabbit@10.0.0.' + node_id, shell=True))
+       logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))       
     
     # Clean up the database for future simulation runs
     os.system("sudo rm -rf /var/lib/rabbitmq/mnesia")

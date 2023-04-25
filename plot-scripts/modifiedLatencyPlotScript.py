@@ -178,6 +178,10 @@ def plotLatencyScatter():
         for lineNum, line in enumerate(f,1):         #to get the line number
             lineXAxis.append(lineNum)
             if "Latency of this message: " in line:
+                if "-1 day" in line:
+                    print("WARN: Found negative latency on line" + line)
+                    latencyYAxis.append(0)
+                    continue
                 firstSplit = line.split("Latency of this message: 0:")
                 #print(str(firstSplit[1]))
                 #print(str(firstSplit[1][0:2]))
@@ -219,7 +223,10 @@ def plotConsTopicLactencyScatter(switches):
                 timeSent = lineSplit[15]
                 
                 firstSplit = line.split("Latency of this message: 0:")
-                latency = float(firstSplit[1][0:2])*60.0 + float(firstSplit[1][3:5])
+                if "-1 day" in line:
+                    latency = 0                                
+                else:
+                    latency = float(firstSplit[1][0:2])*60.0 + float(firstSplit[1][3:5])
                 
                 key = int(consID)-1
                 timesSent[key][lineNum] = timeSent.replace(",", ".")                
@@ -284,13 +291,16 @@ def plotLatencyScatterSorted(switches):
     
     with open(logDir+"/latency-log.txt", "r") as f:
         for lineNum, line in enumerate(f,1):         #to get the line number            
-            if "Latency of this message: " in line:                
+            if "Latency of this message: " in line:            
                 lineSplit = line.split(" ")                
                 consID = lineSplit[11]
                 timeSent = lineSplit[15]
                 
                 firstSplit = line.split("Latency of this message: 0:")
-                latency = float(firstSplit[1][0:2])*60.0 + float(firstSplit[1][3:5])
+                if "-1 day" in line:                    
+                    latency = 0                    
+                else:
+                    latency = float(firstSplit[1][0:2])*60.0 + float(firstSplit[1][3:5])
                 
                 timesSent[int(consID)-1][lineNum] = timeSent.replace(",", ".")                
                 consumersLatency[int(consID)-1][lineNum] = latency

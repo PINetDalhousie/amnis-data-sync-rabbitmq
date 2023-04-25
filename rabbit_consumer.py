@@ -1,25 +1,42 @@
 import sys
 import os
 import logging
+import threading
+import functools
 from rabbit_lib import RabbitMQLib
+# Example taken from https://github.com/pika/pika/blob/main/examples/basic_consumer_threaded.py
 
 
 # Binding key * (star) can substitute for exactly one word.
 # Binding key # (hash) can substitute for zero or more words.
 BINDING_KEYS = "topic.#"
 
+def ack_message(ch, delivery_tag):
+    """Note that `ch` must be the same pika channel instance via which
+    the message being ACKed was retrieved (AMQP protocol constraint).
+    """
+    if ch.is_open:
+        ch.basic_ack(delivery_tag)
+    else:
+        # Channel is already closed, so we can't ACK this message;
+        # log and/or do something that makes sense for your app in this case.
+        pass
 
-def callback(ch, method, properties, body):
-    '''
-    Example Kafka Log:
-    INFO:Prod ID: 02; Message ID: 000055; Latest: False; Topic: topic-0; Offset: 27; Size: 923
-    '''
-    #message = body.decode("utf-8")
+def do_work(ch, method_frame, properties, body):
     prod_id = properties.app_id
     message_id = properties.message_id
-    topic = method.routing_key.split(".")[1]
+    topic = method_frame.routing_key.split(".")[1]
     log = "Prod ID: " + prod_id + "; Message ID: " + message_id + "; Latest: False; Topic: " + topic + "; Offset: 0; Size 1000"    
-    logging.info(log)    
+    logging.info(log)
+    cb = functools.partial(ack_message, ch, method_frame.delivery_tag)
+    ch.connection.add_callback_threadsafe(cb)
+
+
+def on_message(ch, method_frame, properties, body, args):
+    thrds = args
+    t = threading.Thread(target=do_work, args=(ch, method_frame, properties, body))
+    t.start()
+    thrds.append(t) 
 
 
 if __name__ == '__main__':
@@ -49,11 +66,18 @@ if __name__ == '__main__':
             lib.channel.queue_bind(
                 exchange=lib.exchange, queue=queue_name, routing_key=binding_key)
 
-        # Register callback and start consuming
+        
+        lib.channel.basic_qos(prefetch_count=1)
+        threads = []
+        on_message_callback = functools.partial(on_message, args=(threads))
         logging.info('Waiting for messages....')
-        lib.channel.basic_consume(queue=queue_name,
-                                  on_message_callback=callback, auto_ack=True)
+        lib.channel.basic_consume(queue=queue_name, on_message_callback=on_message_callback)        
         lib.channel.start_consuming()
+
+        # Wait for all to complete
+        for thread in threads:
+            thread.join()
+
     except KeyboardInterrupt:
         print('Interrupted')
         try:
