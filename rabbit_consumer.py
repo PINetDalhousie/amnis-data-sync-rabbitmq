@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
         # Create queue
         lib = RabbitMQLib()
-        result = lib.channel.queue_declare('', exclusive=True)
+        result = lib.channel.queue_declare('', durable=True, arguments={"x-queue-type":"quorum"})
         queue_name = result.method.queue
 
         # Bind the queue with our binding key
