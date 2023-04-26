@@ -22,6 +22,8 @@ def cleanRabbitState():
     os.system("pkill -9 -f rabbitmq")
     # Kill remaining erlang processes
     os.system("pkill -9 -f erlang")
+    # Kill bandwidth monitor process
+    os.system("pkill -9 -f bandwidth-monitor.py")
 
     # Clean up the database for future simulation runs
     os.system("rm -rf /var/lib/rabbitmq/mnesia")
@@ -40,7 +42,8 @@ def setup_logging():
     # Create parent folder
     os.system("mkdir " + LOG_DIR)
     os.system("mkdir "+ LOG_DIR +"/cons")    
-    os.system("mkdir "+ LOG_DIR +"/prod")    
+    os.system("mkdir "+ LOG_DIR +"/prod")
+    os.system("mkdir " + LOG_DIR + "/bandwidth")
 
     # Setup logger
     filename = LOG_DIR + "/events.log"
@@ -52,6 +55,16 @@ def setup_logging():
 def get_rabbitmq_logs():
     os.system("cp -R /var/log/rabbitmq/ " + LOG_DIR +"/rabbitmq/")
     
+
+def run_bandwidth_plot(switches):
+    switch_ports = ""
+    for i in range(switches):
+        switch_ports += "S" + str(i+1) + "-P1,"
+    switch_ports = switch_ports[:-1]
+    os.system("python3 plot-scripts/bandwidthPlotScript.py --number-of-switches " + str(switches) +
+              " --port-type access-port --message-size fixed,10 --message-rate 30.0 --ntopics 2 --replication " + str(switches) +
+              " --log-dir " + LOG_DIR + " --switch-ports " + switch_ports)
+    # --switch-ports S1-P1,S2-P1,S3-P1,S4-P1,S5-P1,S6-P1,S7-P1,S8-P1,S9-P1,S10-P1
 
 if __name__ == '__main__':
 
@@ -70,6 +83,12 @@ if __name__ == '__main__':
     # Start mininet
     mininet = MininetLib()
     mininet.start("topologies/" + topology_file)
+
+    # Start bandwidth monitoring
+    print("Starting bandwidth monitor")
+    subprocess.Popen("sudo python3 bandwidth-monitor.py " +
+                     str(len(mininet.net.hosts))+" " + LOG_DIR + " &", shell=True)
+
     # Run RabbitMQ server on each node
     print("Starting servers")
     port = 5672
@@ -143,3 +162,4 @@ if __name__ == '__main__':
     print("Generating visualizations")
     switches = len(mininet.net.hosts)
     os.system("python3 plot-scripts/modifiedLatencyPlotScript.py --number-of-switches " + str(switches) + " --log-dir " + LOG_DIR + "/")
+    run_bandwidth_plot(switches)
