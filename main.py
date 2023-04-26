@@ -11,6 +11,21 @@ from rabbit_lib import RabbitMQLib
 
 LOG_DIR = "./logs/" +datetime.datetime.now().strftime('%Y-%m-%d-%H-%M') 
 
+# Reset rabbitmq by killing old processes and removing old database data
+def cleanRabbitState():
+    print("Resetting RabbitMQ State...")
+    # Kill Producer Processes
+    os.system("pkill -9 -f rabbit_producer.py")
+    # Kill Consumer Processes
+    os.system("pkill -9 -f rabbit_consumer.py")
+    # Kill remaining rabbitmq processes
+    os.system("pkill -9 -f rabbitmq")
+    # Kill remaining erlang processes
+    os.system("pkill -9 -f erlang")
+
+    # Clean up the database for future simulation runs
+    os.system("rm -rf /var/lib/rabbitmq/mnesia")
+
 def read_config():
     config = configparser.ConfigParser()
     config.read('config/config.ini')
@@ -48,6 +63,9 @@ if __name__ == '__main__':
     test_duration = config.getint('Simulation', 'test_duration')
     topology_file = config.get('Simulation', 'topology_file')
     debug = config.getboolean('Simulation', 'debug')
+
+    # Cleanup rabbitmq state
+    cleanRabbitState()
 
     # Start mininet
     mininet = MininetLib()
@@ -112,19 +130,10 @@ if __name__ == '__main__':
     print(f"Running for {test_duration}s")
     time.sleep(test_duration)
     print("Simulation complete\r")
-    logging.info('Simulation complete at ' + str(datetime.datetime.now()))
+    logging.info('Simulation complete at ' + str(datetime.datetime.now()))      
 
-    mininet.setNetworkDelay('1ms')
-    # Stop rabbitmq nodes and cleanup
-    for h in mininet.net.hosts:
-       node_id = str(h.name)[1:]   
-       logging.info(h.cmd('rabbitmqctl stop_app' + ' -n rabbit@10.0.0.' + node_id, shell=True))       
-    
-    # Clean up the database for future simulation runs
-    os.system("sudo rm -rf /var/lib/rabbitmq/mnesia")
-
-    # Kill Producer Processes
-    os.system("sudo pkill -9 -f rabbit_producer.py")
+    # Reset rabbitmq state
+    cleanRabbitState()
 
     mininet.stop()
     get_rabbitmq_logs()
