@@ -44,10 +44,12 @@ if __name__ == '__main__':
         if len(sys.argv) == 1:
             node_id = "1"
             log_dir = "./logs/test"
+            prefetch_count = 0
             os.system("mkdir -p "+ log_dir +"/cons")  
         else:
             node_id = sys.argv[1]
             log_dir = sys.argv[2]
+            prefetch_count = int(sys.argv[3])
 
         # Setup logger
         log_path = log_dir + "/cons/cons-" + node_id + ".log"
@@ -58,7 +60,7 @@ if __name__ == '__main__':
 
         # Create queue
         lib = RabbitMQLib()
-        result = lib.channel.queue_declare('', durable=True, arguments={"x-queue-type":"quorum"})
+        result = lib.channel.queue_declare('topic-queue', durable=True, arguments={"x-queue-type":"quorum"})
         queue_name = result.method.queue
 
         # Bind the queue with our binding key
@@ -67,7 +69,7 @@ if __name__ == '__main__':
                 exchange=lib.exchange, queue=queue_name, routing_key=binding_key)
 
         
-        lib.channel.basic_qos(prefetch_count=1)
+        lib.channel.basic_qos(prefetch_count=prefetch_count)
         threads = []
         on_message_callback = functools.partial(on_message, args=(threads))
         logging.info('Waiting for messages....')

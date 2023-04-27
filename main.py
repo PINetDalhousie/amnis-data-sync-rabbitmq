@@ -76,6 +76,7 @@ if __name__ == '__main__':
     test_duration = config.getint('Simulation', 'test_duration')
     topology_file = config.get('Simulation', 'topology_file')
     debug = config.getboolean('Simulation', 'debug')
+    prefetch_count = config.getint('Simulation', 'prefetch_count')
 
     # Cleanup rabbitmq state
     cleanRabbitState()
@@ -127,7 +128,7 @@ if __name__ == '__main__':
     print("Starting consumers")    
     for h in mininet.net.hosts:
         node_id = str(h.name)[1:]
-        h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR + " &", shell=True)        
+        h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR +  " " + str(prefetch_count) + " &", shell=True)        
 
     # Let consumers settle before sending messages
     sleep_duration = 30
@@ -163,3 +164,5 @@ if __name__ == '__main__':
     switches = len(mininet.net.hosts)
     os.system("python3 plot-scripts/modifiedLatencyPlotScript.py --number-of-switches " + str(switches) + " --log-dir " + LOG_DIR + "/")
     run_bandwidth_plot(switches)
+    #os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic 2")
+    #os.system("sudo mv msg-delivery/ ../$RESULT_DIR/")    
