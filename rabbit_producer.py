@@ -7,7 +7,8 @@ import logging
 import re
 import random
 import os
-
+import pika
+from pika import spec, DeliveryMode
 from pika import BasicProperties
 from rabbit_lib import RabbitMQLib
 
@@ -26,7 +27,6 @@ def processProdMsg(q):
 			logging.info('Produced message ID: %s; Value: %s', str(kPointerKey[0]), logMsgStatus)
 		except Exception as e:
 			logging.info('Message not produced. ID: %s; Error: %s', str(kPointerKey[0]), e)
-
 
 def readXmlFileMessage(file):
 	lines = file.readlines()
@@ -125,17 +125,19 @@ if __name__ == '__main__':
             topicName = 'topic-'+str(topicID)
 
             #prodStatus = producer.send(topicName, bMsg)
-            routing_key = ROUTING_KEY + topicName
-            properties = BasicProperties(app_id=newNodeID, message_id=newMsgID)
-            lib.channel.basic_publish(exchange=lib.exchange, routing_key=routing_key, properties=properties, body=message)            
-            logging.info('Topic: %s; Message ID: %s; Message: %s', topicName, newMsgID, message)
-
-            # prodStatus = ""
-            # msgInfo = {}
-            # msgInfo[newMsgID] = prodStatus
-            # q.put(msgInfo)
-
-            #logging.info('Topic: %s; Message ID: %s;', topicName, str(msgID).zfill(3))        
+            routing_key = ROUTING_KEY + topicName                    
+            try:
+                logging.info('Topic: %s; Message ID: %s; Message: %s', topicName, newMsgID, message)
+                lib.channel.basic_publish(exchange=lib.exchange,
+                                    routing_key=routing_key,
+                                    body=message,
+                                    properties=pika.BasicProperties(app_id=newNodeID, message_id=newMsgID,
+                                                                    content_type='text/plain',
+                                                                    delivery_mode=pika.DeliveryMode.Transient))
+                logging.info('Message publish was confirmed')
+            except pika.exceptions.UnroutableError:
+                logging.info('Message could not be confirmed')
+    
             msgID += 1
             time.sleep(1.0/(mRate*tClass))
               

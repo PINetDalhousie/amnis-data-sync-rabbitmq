@@ -59,21 +59,15 @@ if __name__ == '__main__':
         logging.info("Started consumer-" + node_id)
 
         # Create queue
-        lib = RabbitMQLib()
-        result = lib.channel.queue_declare('topic-queue', durable=True, arguments={"x-queue-type":"quorum"})
-        queue_name = result.method.queue
+        lib = RabbitMQLib()        
 
         # Bind the queue with our binding key
-        for binding_key in BINDING_KEYS:
-            lib.channel.queue_bind(
-                exchange=lib.exchange, queue=queue_name, routing_key=binding_key)
-
-        
+        lib.channel.queue_bind(exchange=lib.exchange, queue=lib.queue_name, routing_key=BINDING_KEYS)        
         lib.channel.basic_qos(prefetch_count=prefetch_count)
         threads = []
         on_message_callback = functools.partial(on_message, args=(threads))
         logging.info('Waiting for messages....')
-        lib.channel.basic_consume(queue=queue_name, on_message_callback=on_message_callback)        
+        lib.channel.basic_consume(queue=lib.queue_name, on_message_callback=on_message_callback)        
         lib.channel.start_consuming()
 
         # Wait for all to complete
