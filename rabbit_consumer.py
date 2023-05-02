@@ -44,7 +44,7 @@ if __name__ == '__main__':
         if len(sys.argv) == 1:
             node_id = "1"
             log_dir = "./logs/test"
-            prefetch_count = 0
+            prefetch_count = 1
             os.system("mkdir -p "+ log_dir +"/cons")  
         else:
             node_id = sys.argv[1]
@@ -59,7 +59,7 @@ if __name__ == '__main__':
         logging.info("Started consumer-" + node_id)
 
         # Create queue
-        lib = RabbitMQLib()        
+        lib = RabbitMQLib(node_id)        
 
         # Bind the queue with our binding key
         lib.channel.queue_bind(exchange=lib.exchange, queue=lib.queue_name, routing_key=BINDING_KEYS)        

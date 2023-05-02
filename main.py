@@ -1,5 +1,6 @@
 import datetime
 import os
+import sys
 import subprocess
 import time
 import configparser
@@ -38,6 +39,29 @@ def read_config():
             logging.info(f'{option} = {value}')
     return config
 
+def validate_config(config):
+    section='Simulation'    
+    if not config.has_option(section, 'debug'):
+        print("ERROR: Config requries debug to be specified as a boolean.")
+        sys.exit(1)
+    if not config.has_option(section, 'test_duration') or config.getint(section, 'test_duration') <= 0:
+        print("ERROR: Config requires test_duration to be specified as an integer greater than zero.")
+        sys.exit(1)
+    if not config.has_option(section, 'topology_file'):
+        print("ERROR: Config requires topology_file to be specified.")
+        sys.exit(1)
+    if not config.has_option(section, 'prefetch_count') or config.getint(section, 'prefetch_count') <= 0:
+        print("ERROR: Config requires prefetch_count to be specified as an integer greater than zero.")
+        sys.exit(1)
+    if not config.has_option(section, 'publisher_confirms'):
+        print("ERROR: Config requires publisher_confirms to be specified as a boolean.")
+        sys.exit(1)
+    queue_list = ['classic', 'quorum', 'stream']
+    if not config.has_option(section, 'queue_type') or (not config.get(section, 'queue_type') in queue_list):
+        print("ERROR: Config requires queue_type to be specified as one of the following:")
+        print(*queue_list, sep = ", ") 
+        sys.exit(1)
+
 def setup_logging():
     # Create parent folder
     os.system("mkdir " + LOG_DIR)
@@ -73,10 +97,12 @@ if __name__ == '__main__':
 
     # Read config
     config = read_config()
+    validate_config(config)
     test_duration = config.getint('Simulation', 'test_duration')
     topology_file = config.get('Simulation', 'topology_file')
     debug = config.getboolean('Simulation', 'debug')
     prefetch_count = config.getint('Simulation', 'prefetch_count')
+    queue_type = config.get('Simulation', 'queue_type')
 
     # Cleanup rabbitmq state
     cleanRabbitState()
@@ -87,7 +113,7 @@ if __name__ == '__main__':
 
     # Start bandwidth monitoring
     print("Starting bandwidth monitor")
-    subprocess.Popen("sudo python3 bandwidth-monitor.py " +
+    subprocess.Popen("python3 bandwidth-monitor.py " +
                      str(len(mininet.net.hosts))+" " + LOG_DIR + " &", shell=True)
 
     # Run RabbitMQ server on each node

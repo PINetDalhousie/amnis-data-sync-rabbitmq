@@ -88,7 +88,7 @@ if __name__ == '__main__':
                             level=logging.INFO)
         logging.info("Started producer-" + node_id)
 
-        lib = RabbitMQLib()     
+        lib = RabbitMQLib(node_id)     
 
         # --message-rate 30.0 --replication $SWITCHES --message-file message-data/xml/Cars103.xml --time 150 --replica-min-bytes 200000 --replica-max-wait 5000 --ntopics $TOPICS --topic-check 0.1 --consumer-rate 0.5 --compression gzip --single-consumer --batch-size 16384 --linger 5000 
         mSizeParams = 'fixed,1000'
