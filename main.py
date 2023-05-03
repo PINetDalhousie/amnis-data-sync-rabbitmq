@@ -50,9 +50,6 @@ def validate_config(config):
     if not config.has_option(section, 'topology_file'):
         print("ERROR: Config requires topology_file to be specified.")
         sys.exit(1)
-    if not config.has_option(section, 'prefetch_count') or config.getint(section, 'prefetch_count') <= 0:
-        print("ERROR: Config requires prefetch_count to be specified as an integer greater than zero.")
-        sys.exit(1)
     if not config.has_option(section, 'publisher_confirms'):
         print("ERROR: Config requires publisher_confirms to be specified as a boolean.")
         sys.exit(1)
@@ -61,10 +58,17 @@ def validate_config(config):
         print("ERROR: Config requires queue_type to be specified as one of the following:")
         print(*queue_list, sep = ", ") 
         sys.exit(1)
+    if not config.has_option(section, 'prefetch_count') or config.getint(section, 'prefetch_count') <= 0:
+        if config.get(section, 'queue_type') == 'stream':
+            print("ERROR: Config requires prefetch_count to be specified as an integer greater than zero for streams.")
+            sys.exit(1)
+        elif config.getint(section, 'prefetch_count') < 0:
+            print("ERROR: Config requires prefetch_count to be specified as an integer of zero or greater.")
+            sys.exit(1)
 
 def setup_logging():
     # Create parent folder
-    os.system("mkdir " + LOG_DIR)
+    os.system("mkdir -p " + LOG_DIR)
     os.system("mkdir "+ LOG_DIR +"/cons")    
     os.system("mkdir "+ LOG_DIR +"/prod")
     os.system("mkdir " + LOG_DIR + "/bandwidth")

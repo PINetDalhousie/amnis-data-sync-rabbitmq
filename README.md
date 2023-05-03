@@ -1,6 +1,11 @@
 # AMNIS-RabbitMQ
 Tool for emulating data synchronization in mission critical networks. This repo uses RabbitMQ as the message broker. For the Kafka version, visit: https://github.com/PINetDalhousie/amnis-data-sync/tree/main
 
+## Requirements
+
+In order to run a stream queue type, rabbitmq-server version 3.9.13 or greater is needed. This requires Ubuntu jammy (22.04LTS).
+
+Classic and quorum queue types can be run with rabbitmq-server version 3.8.2 on Ubuntu focal (20.04LTS).
 
 ## Getting Started
 
