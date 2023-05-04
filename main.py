@@ -93,6 +93,14 @@ def run_bandwidth_plot(switches):
               " --log-dir " + LOG_DIR + " --switch-ports " + switch_ports)
     # --switch-ports S1-P1,S2-P1,S3-P1,S4-P1,S5-P1,S6-P1,S7-P1,S8-P1,S9-P1,S10-P1
 
+def trace_wireshark(hosts, title):
+    for h in hosts:
+        hostName = h.name
+        filename = "/tmp/" + hostName + "-eth1" + "-" + title + ".pcap"
+        output = h.cmd("sudo tcpdump -i " + hostName +
+                       "-eth1 -w " + filename + " &", shell=True)
+        print(output)
+
 if __name__ == '__main__':
 
     # Set logger
@@ -106,6 +114,7 @@ if __name__ == '__main__':
     debug = config.getboolean('Simulation', 'debug')
     prefetch_count = config.getint('Simulation', 'prefetch_count')
     queue_type = config.get('Simulation', 'queue_type')
+    wireshark_capture = config.getboolean('Simulation', 'wireshark_capture')
     disconnect_random = config.getint('Disconnect', 'disconnect_random')
     disconnect_hosts = config.get('Disconnect', 'disconnect_hosts')
     disconnect_duration = config.getint('Disconnect', 'disconnect_duration')
@@ -122,6 +131,10 @@ if __name__ == '__main__':
     print("Starting bandwidth monitor")
     subprocess.Popen("python3 bandwidth-monitor.py " +
                      str(len(mininet.net.hosts))+" " + LOG_DIR + " &", shell=True)
+    
+    # Start Wireshark
+    if wireshark_capture:
+        trace_wireshark(mininet.net.hosts, "start")
 
     # Run RabbitMQ server on each node
     print("Starting servers")
@@ -197,8 +210,8 @@ if __name__ == '__main__':
                 isDisconnected = True
             elif isDisconnected and disconnect_duration <= 0: 			
                 mininet.reconnectHosts(netHosts, hostsToDisconnect)
-				# if args.captureAll:
-				# 	traceWireshark(hostsToDisconnect, "reconnect")
+                if wireshark_capture:
+                    trace_wireshark(hostsToDisconnect, "reconnect")
                 isDisconnected = False
                 is_disconnect = False
             if isDisconnected:
@@ -221,4 +234,10 @@ if __name__ == '__main__':
     os.system("python3 plot-scripts/modifiedLatencyPlotScript.py --number-of-switches " + str(switches) + " --log-dir " + LOG_DIR + "/")
     run_bandwidth_plot(switches)
     #os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic 2")
-    #os.system("sudo mv msg-delivery/ ../$RESULT_DIR/")    
+    #os.system("sudo mv msg-delivery/ ../$RESULT_DIR/")   
+
+    if wireshark_capture:
+        print("Moving wireshark pcaps")
+        os.system("chmod ugo+rwx /tmp/*pcap")
+        os.system("mkdir " + LOG_DIR + "/pcaps/")
+        os.system("mv /tmp/*pcap " + LOG_DIR + "/pcaps/")
