@@ -10,6 +10,7 @@ class RabbitMQLib:
         config.read('config/config.ini')
         publisher_confirms = config.getboolean('Simulation', 'publisher_confirms')
         queue_type = config.get('Simulation', 'queue_type')
+        single_queue = config.getboolean('Simulation', 'single_queue')
 
         # Create connection
         self.connection = pika.BlockingConnection(
@@ -20,8 +21,11 @@ class RabbitMQLib:
         self.exchange = 'topic_logs'
         self.channel.exchange_declare(exchange=self.exchange,
                                       exchange_type='topic')
-        
-        result = self.channel.queue_declare('topic-' + node_id, durable=True, exclusive=False, auto_delete=False, arguments={"x-queue-type":queue_type})
+    
+        queue = 'topic-' + node_id
+        if single_queue:
+            queue = 'topic-queue'
+        result = self.channel.queue_declare(queue=queue, durable=True, exclusive=False, auto_delete=False, arguments={"x-queue-type":queue_type})
         self.queue_name = result.method.queue
         
         # Enable publisher confirms

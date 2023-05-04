@@ -1,5 +1,9 @@
+import configparser
+import logging
 import subprocess
 import time
+from random import seed, randint
+from datetime import datetime
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.node import RemoteController
@@ -43,9 +47,21 @@ class CustomTopo(Topo):
 
 
 class MininetLib:
-    def __init__(self) -> None:
+    def __init__(self, log_dir) -> None:
         self.net = None
+        # Setup logger
+        filename = log_dir + "/events.log"
+        logging.basicConfig(filename=filename,
+                            format='%(asctime)s %(levelname)s:%(message)s',
+                            level=logging.INFO)
         setLogLevel('info')
+
+        # Read config
+        config = configparser.ConfigParser()
+        config.read('config/config.ini')
+        self.disconnectRandom = config.getint('Disconnect', 'disconnect_random')
+        self.disconnectHosts = config.get('Disconnect', 'disconnect_hosts')
+        self.disconnectDuration = config.getint('Disconnect', 'disconnect_duration')
 
     def start(self, topo_file, sleep_duration=30):
         print("Starting mininet")
@@ -87,17 +103,6 @@ class MininetLib:
         self.net.stop()
         #Clean up mininet state
         subprocess.Popen("sudo mn -c", shell=True)
-    
-    def install_rabbit_mq(self):
-        print("Installing RabbitMQ")
-        # Install RabbitMQ on each node in the network
-        for host in self.net.hosts:
-            host.cmd('apt-get update')
-            host.cmd('apt-get -y install rabbitmq-server')
-
-        # Test RabbitMQ installation by starting the RabbitMQ service on each node
-        for host in self.net.hosts:
-            host.cmd('service rabbitmq-server start')
 
     def setNetworkDelay(self, newDelay=None):
         net = self.net
@@ -118,5 +123,56 @@ class MininetLib:
                         else:						
                             # Use the passed in param				
                             intf.link.intf1.config(delay=newDelay)
-                            intf.link.intf2.config(delay=newDelay)					
+                            intf.link.intf2.config(delay=newDelay)	
 
+    def printLinksBetween(self, n1, n2):	
+        net = self.net
+        linksBetween = net.linksBetween(n1, n2)
+        print(f"Links between {n1.name} {n2.name} {linksBetween}")	
+        if len(linksBetween) > 0:
+            for link in linksBetween:			
+                print(link.intf1)
+                print(link.intf2)
+
+    def disconnect_hosts(self, netHosts, hosts):        
+        for h in hosts:
+            netHost = netHosts[h.name]		
+            s = self.net.getNodeByName(netHost[1][0])		
+            self.disconnectHost(h, s)
+
+    def disconnectHost(self, h, s):	        
+        print(f"***********Setting link down from {h.name} <-> {s.name} at {str(datetime.now())}")						
+        logging.info('Disconnected %s <-> %s at %s', h.name, s.name,  str(datetime.now()))
+        self.net.configLinkStatus(s.name, h.name, "down")			
+
+    def reconnectHosts(self, netHosts, hosts):        
+        for h in hosts:
+            netHost = netHosts[h.name]		
+            s = self.net.getNodeByName(netHost[1][0])
+            self.reconnectHost(h, s)
+
+    def reconnectHost(self, h, s):        
+        print(f"***********Setting link up from {h.name} <-> {s.name} at {str(datetime.now())}")
+        logging.info('Connected %s <-> %s at %s', h.name, s.name,  str(datetime.now()))
+        self.net.configLinkStatus(s.name, h.name, "up")	
+
+    def processDisconnect(self):        
+        hostsToDisconnect = []
+        netHosts = {k: v for k, v in self.net.topo.ports.items() if 'h' in k}
+        if self.disconnectRandom != 0:
+            seed()
+            randomIndex = randint(0, len(netHosts) - 1)
+            netHostsList = list(netHosts.items())
+            while self.disconnectRandom != len(hostsToDisconnect):
+                h = self.net.getNodeByName(netHostsList[randomIndex][0])
+                if not hostsToDisconnect.__contains__(h):
+                    hostsToDisconnect.append(h)
+                    print(f"Host {h.name} to be disconnected for {self.disconnectDuration}s\r")
+                randomIndex = randint(0, len(netHosts) - 1)
+        elif self.disconnectHosts is not None:
+            hostNames = self.disconnectHosts.split(',')
+            for hostName in hostNames:
+                h = self.net.getNodeByName(hostName)
+                hostsToDisconnect.append(h)        
+
+        return netHosts, hostsToDisconnect

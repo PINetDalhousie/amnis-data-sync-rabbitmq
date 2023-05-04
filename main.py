@@ -83,7 +83,6 @@ def setup_logging():
 def get_rabbitmq_logs():
     os.system("cp -R /var/log/rabbitmq/ " + LOG_DIR +"/rabbitmq/")
     
-
 def run_bandwidth_plot(switches):
     switch_ports = ""
     for i in range(switches):
@@ -107,12 +106,16 @@ if __name__ == '__main__':
     debug = config.getboolean('Simulation', 'debug')
     prefetch_count = config.getint('Simulation', 'prefetch_count')
     queue_type = config.get('Simulation', 'queue_type')
+    disconnect_random = config.getint('Disconnect', 'disconnect_random')
+    disconnect_hosts = config.get('Disconnect', 'disconnect_hosts')
+    disconnect_duration = config.getint('Disconnect', 'disconnect_duration')
+    is_disconnect = disconnect_random != 0 or disconnect_hosts != "None"
 
     # Cleanup rabbitmq state
     cleanRabbitState()
 
     # Start mininet
-    mininet = MininetLib()
+    mininet = MininetLib(LOG_DIR)
     mininet.start("topologies/" + topology_file)
 
     # Start bandwidth monitoring
@@ -175,10 +178,33 @@ if __name__ == '__main__':
         node_id = str(h.name)[1:]     
         h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
 
-    # Let simulation run for specified duration
-    print("Simulation started")
-    print(f"Running for {test_duration}s")
-    time.sleep(test_duration)
+    # Set up disconnect
+    if is_disconnect:
+        isDisconnected = False        
+        netHosts, hostsToDisconnect = mininet.processDisconnect()
+
+    # Let simulation run for specified duration    
+    print(f"Simulation started. Running for {test_duration}s")
+    logging.info('Simulation started at ' + str(datetime.datetime.now()))      
+    timer = 0
+    while timer < test_duration:
+        time.sleep(10)
+        percentComplete = int((timer/test_duration)*100)
+        print("Processing workload: "+str(percentComplete)+"%\r")
+        if is_disconnect and percentComplete >= 10:
+            if not isDisconnected:			
+                mininet.disconnect_hosts(netHosts, hostsToDisconnect)				
+                isDisconnected = True
+            elif isDisconnected and disconnect_duration <= 0: 			
+                mininet.reconnectHosts(netHosts, hostsToDisconnect)
+				# if args.captureAll:
+				# 	traceWireshark(hostsToDisconnect, "reconnect")
+                isDisconnected = False
+                is_disconnect = False
+            if isDisconnected:
+                disconnect_duration -= 10
+        timer += 10
+
     print("Simulation complete\r")
     logging.info('Simulation complete at ' + str(datetime.datetime.now()))      
 
