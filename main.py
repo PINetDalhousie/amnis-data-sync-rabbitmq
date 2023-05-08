@@ -17,8 +17,10 @@ def cleanRabbitState():
     print("Resetting RabbitMQ State...")
     # Kill Producer Processes
     os.system("pkill -9 -f rabbit_producer.py")
+    os.system("pkill -9 -f rabbit_producer_async.py")    
     # Kill Consumer Processes
     os.system("pkill -9 -f rabbit_consumer.py")
+    os.system("pkill -9 -f rabbit_consumer_async.py")
     # Kill remaining rabbitmq processes
     os.system("pkill -9 -f rabbitmq")
     # Kill remaining erlang processes
@@ -49,9 +51,6 @@ def validate_config(config):
         sys.exit(1)
     if not config.has_option(section, 'topology_file'):
         print("ERROR: Config requires topology_file to be specified.")
-        sys.exit(1)
-    if not config.has_option(section, 'publisher_confirms'):
-        print("ERROR: Config requires publisher_confirms to be specified as a boolean.")
         sys.exit(1)
     queue_list = ['classic', 'quorum', 'stream']
     if not config.has_option(section, 'queue_type') or (not config.get(section, 'queue_type') in queue_list):
@@ -175,6 +174,7 @@ if __name__ == '__main__':
     for h in mininet.net.hosts:
         node_id = str(h.name)[1:]
         h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR +  " " + str(prefetch_count) + " &", shell=True)        
+        #h.popen("python3 rabbit_consumer_async.py " + node_id + " " + LOG_DIR + " &", shell=True)        
 
     # Let consumers settle before sending messages
     sleep_duration = 30
@@ -185,11 +185,12 @@ if __name__ == '__main__':
     mininet.setNetworkDelay()
     time.sleep(10)
 
-    # Run a single producer
+    # Run producers
     print("Starting producers")
     for h in mininet.net.hosts:   
         node_id = str(h.name)[1:]     
         h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
+        #h.popen("python3 rabbit_producer_async.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
 
     # Set up disconnect
     if is_disconnect:
@@ -233,8 +234,10 @@ if __name__ == '__main__':
     switches = len(mininet.net.hosts)
     os.system("python3 plot-scripts/modifiedLatencyPlotScript.py --number-of-switches " + str(switches) + " --log-dir " + LOG_DIR + "/")
     run_bandwidth_plot(switches)
-    #os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic 2")
-    #os.system("sudo mv msg-delivery/ ../$RESULT_DIR/")   
+    os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic 2")
+    os.system("sudo mv msg-delivery/ " + LOG_DIR + "/" )   
+    os.system("sudo mv failed-messages/ " + LOG_DIR + "/")   
+    os.system("sudo mv broker-confirmation/ " + LOG_DIR + "/")   
 
     if wireshark_capture:
         print("Moving wireshark pcaps")

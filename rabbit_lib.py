@@ -8,7 +8,6 @@ class RabbitMQLib:
         # Read config
         config = configparser.ConfigParser()
         config.read('config/config.ini')
-        publisher_confirms = config.getboolean('Simulation', 'publisher_confirms')
         queue_type = config.get('Simulation', 'queue_type')
         single_queue = config.getboolean('Simulation', 'single_queue')
 
@@ -26,11 +25,7 @@ class RabbitMQLib:
         if single_queue:
             queue = 'topic-queue'
         result = self.channel.queue_declare(queue=queue, durable=True, exclusive=False, auto_delete=False, arguments={"x-queue-type":queue_type})
-        self.queue_name = result.method.queue
-        
-        # Enable publisher confirms
-        if publisher_confirms:
-            self.channel.confirm_delivery()
+        self.queue_name = result.method.queue        
 
     def disconnect(self):
         # Close connection to flush out buffers

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0111,C0103,R0205
+# https://github.com/pika/pika/blob/main/examples/asynchronous_consumer_example.py
 
+import configparser
 import functools
 import logging
 import time
@@ -9,9 +11,6 @@ import sys
 import os
 from pika.exchange_type import ExchangeType
 
-# LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
-#               '-35s %(lineno) -5d: %(message)s')
-# LOGGER = logging.getLogger(__name__)
 
 
 class ExampleConsumer(object):
@@ -32,7 +31,7 @@ class ExampleConsumer(object):
     QUEUE = 'topic-queue'
     ROUTING_KEY = "topic.#"
 
-    def __init__(self, amqp_url):
+    def __init__(self, amqp_url, node_id, prefetch_count, queue_type, single_queue):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -50,7 +49,12 @@ class ExampleConsumer(object):
         self._consuming = False
         # In production, experiment with higher prefetch values
         # for higher consumer throughput
-        self._prefetch_count = 0
+        self._prefetch_count = prefetch_count
+        self.node_id = node_id
+        self.queue_type = queue_type
+        self.single_queue = single_queue
+        if not single_queue:
+            self.QUEUE = "topic-" + node_id
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -261,7 +265,7 @@ class ExampleConsumer(object):
         :param pika.frame.Method _unused_frame: The Basic.QosOk response frame
 
         """
-        logging.info('QOS set to: %d', self._prefetch_count)
+        logging.info('QOS _prefetch_count set to: %d', self._prefetch_count)
         self.start_consuming()
 
     def start_consuming(self):
@@ -316,8 +320,12 @@ class ExampleConsumer(object):
         :param bytes body: The message body
 
         """
-        logging.info('Received message # %s from %s: %s',
-                    basic_deliver.delivery_tag, properties.app_id, body)
+        prod_id = properties.app_id
+        message_id = properties.message_id
+        topic = basic_deliver.routing_key.split(".")[1]        
+        log = "Prod ID: " + prod_id + "; Message ID: " + message_id + "; Latest: False; Topic: " + topic + "; Offset: 0; Size 1000"    
+        logging.info(log)
+        #logging.info('Received message # %s from %s: %s',basic_deliver.delivery_tag, properties.app_id, body)
         self.acknowledge_message(basic_deliver.delivery_tag)
 
     def acknowledge_message(self, delivery_tag):
@@ -327,7 +335,7 @@ class ExampleConsumer(object):
         :param int delivery_tag: The delivery tag from the Basic.Deliver frame
 
         """
-        logging.info('Acknowledging message %s', delivery_tag)
+        #logging.info('Acknowledging message %s', delivery_tag)
         self._channel.basic_ack(delivery_tag)
 
     def stop_consuming(self):
@@ -401,10 +409,14 @@ class ReconnectingExampleConsumer(object):
 
     """
 
-    def __init__(self, amqp_url):
+    def __init__(self, amqp_url, node_id, prefetch_count, queue_type, single_queue):
         self._reconnect_delay = 0
         self._amqp_url = amqp_url
-        self._consumer = ExampleConsumer(self._amqp_url)
+        self._node_id = node_id
+        self._prefetch_count = prefetch_count
+        self._queue_type = queue_type
+        self._single_queue = single_queue
+        self._consumer = ExampleConsumer(self._amqp_url, self._node_id, self._prefetch_count, self._queue_type, self._single_queue)
 
     def run(self):
         while True:
@@ -433,29 +445,24 @@ class ReconnectingExampleConsumer(object):
         return self._reconnect_delay
 
 
-def main():
-    #logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
-    try:
-        amqp_url = 'amqp://guest:guest@localhost:5672/%2F'
-        logging.info("Connecting")
-        consumer = ReconnectingExampleConsumer(amqp_url)
-        logging.info("Running")
-        consumer.run()
-    except Exception as e :
-        print(e)
 
 
 if __name__ == '__main__':
     try:
         if len(sys.argv) == 1:
             node_id = "1"
-            log_dir = "./logs/test"
-            prefetch_count = 1
+            log_dir = "./logs/test"            
             os.system("mkdir -p " + log_dir + "/cons")
         else:
             node_id = sys.argv[1]
-            log_dir = sys.argv[2]
-            prefetch_count = int(sys.argv[3])
+            log_dir = sys.argv[2]            
+
+        # Read config
+        config = configparser.ConfigParser()
+        config.read('config/config.ini')
+        prefetch_count = config.getint('Simulation', 'prefetch_count')
+        queue_type = config.get('Simulation', 'queue_type')
+        single_queue = config.getboolean('Simulation', 'single_queue')
 
         # Setup logger
         log_path = log_dir + "/cons/cons-" + node_id + ".log"
@@ -463,6 +470,12 @@ if __name__ == '__main__':
                             format='%(asctime)s %(levelname)s:%(message)s',
                             level=logging.INFO)
         logging.info("Started consumer-" + node_id)
-        main()
+
+        # Create consumer
+        amqp_url = 'amqp://guest:guest@localhost:5672/%2F'
+        logging.info("Connecting")
+        consumer = ReconnectingExampleConsumer(amqp_url, node_id, prefetch_count, queue_type, single_queue)
+        logging.info("Running")
+        consumer.run()
     except Exception as e :
         print(e)
