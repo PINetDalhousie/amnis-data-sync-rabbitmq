@@ -28,7 +28,7 @@ class ExampleConsumer(object):
     """
     EXCHANGE = 'topic_logs'
     EXCHANGE_TYPE = ExchangeType.topic
-    QUEUE = 'topic-queue'
+    QUEUE = 'single-queue'
     ROUTING_KEY = "topic.#"
 
     def __init__(self, amqp_url, node_id, prefetch_count, queue_type, single_queue):
@@ -54,7 +54,7 @@ class ExampleConsumer(object):
         self.queue_type = queue_type
         self.single_queue = single_queue
         if not single_queue:
-            self.QUEUE = "topic-" + node_id
+            self.QUEUE = "queue-" + node_id
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.

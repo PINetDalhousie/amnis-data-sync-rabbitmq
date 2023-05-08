@@ -84,10 +84,10 @@ class ExamplePublisher(object):
     EXCHANGE = 'topic_logs'
     EXCHANGE_TYPE = ExchangeType.topic
     PUBLISH_INTERVAL = 1
-    QUEUE = 'topic-queue'
+    QUEUE = 'single-queue'
     ROUTING_KEY = "topic.#"
 
-    def __init__(self, amqp_url, node_id, queue_type, single_queue):
+    def __init__(self, amqp_url, node_id, queue_type, single_queue, publish_interval):
         """Setup the example publisher object, passing in the URL we will use
         to connect to RabbitMQ.
 
@@ -108,7 +108,8 @@ class ExamplePublisher(object):
         self.queue_type = queue_type
         self.single_queue = single_queue
         if not single_queue:
-            self.QUEUE = "topic-" + node_id
+            self.QUEUE = "queue-" + node_id
+        self.PUBLISH_INTERVAL = publish_interval
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -471,6 +472,9 @@ if __name__ == '__main__':
         config.read('config/config.ini')
         queue_type = config.get('Simulation', 'queue_type')
         single_queue = config.getboolean('Simulation', 'single_queue')
+        publish_interval = config.getint('Simulation', 'publish_interval')
+        num_topics = config.getint('Simulation', 'num_topics')
+        nTopics = num_topics
 
         # Read the message once and save in cache
         if(messageFilePath != 'None'):
@@ -482,7 +486,7 @@ if __name__ == '__main__':
         # Connect to localhost:5672 as guest with the password guest and virtual host "/" (%2F)
         example = ExamplePublisher(
             'amqp://guest:guest@localhost:5672/%2F?connection_attempts=3&heartbeat=3600',
-            node_id, queue_type, single_queue
+            node_id, queue_type, single_queue, publish_interval
         )
         example.run()
     except Exception as e:

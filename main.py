@@ -206,7 +206,7 @@ if __name__ == '__main__':
         if async_clients:
             h.popen("python3 rabbit_consumer_async.py " + node_id + " " + LOG_DIR + " &", shell=True)
         else:
-            h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR +  " " + str(prefetch_count) + " &", shell=True)        
+            h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR + " &", shell=True)        
         
 
     # Let consumers settle before sending messages

@@ -1,3 +1,4 @@
+import configparser
 import sys
 import os
 import logging
@@ -43,13 +44,16 @@ if __name__ == '__main__':
     try:
         if len(sys.argv) == 1:
             node_id = "1"
-            log_dir = "./logs/test"
-            prefetch_count = 1
+            log_dir = "./logs/test"            
             os.system("mkdir -p "+ log_dir +"/cons")  
         else:
             node_id = sys.argv[1]
-            log_dir = sys.argv[2]
-            prefetch_count = int(sys.argv[3])
+            log_dir = sys.argv[2]            
+
+        # Read config
+        config = configparser.ConfigParser()
+        config.read('config/config.ini')
+        prefetch_count = config.getint('Simulation', 'prefetch_count')
 
         # Setup logger
         log_path = log_dir + "/cons/cons-" + node_id + ".log"
