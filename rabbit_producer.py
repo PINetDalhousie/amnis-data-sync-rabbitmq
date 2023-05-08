@@ -15,7 +15,6 @@ from rabbit_lib import RabbitMQLib
 # Binding key * (star) can substitute for exactly one word.
 # Binding key # (hash) can substitute for zero or more words.
 ROUTING_KEY = "topic."
-messageFilePath = "message-data/xml/Cars103.xml"
 
 def processProdMsg(q):
 	while True:
@@ -77,9 +76,20 @@ if __name__ == '__main__':
             node_id = "1"
             log_dir = "./logs/test"
             os.system("mkdir -p "+ log_dir +"/prod")  
+            tClass = 1
+            mSizeParams = 'fixed,1000'
+            mRate = 30.0
+            nTopics  = 2
+            messageFilePath = "message-data/xml/Cars103.xml"
+
         else:
             node_id = sys.argv[1]
             log_dir = sys.argv[2]
+            tClass = float(sys.argv[3])
+            mSizeParams = sys.argv[4]
+            mRate = float(sys.argv[5])
+            nTopics = int(sys.argv[6])
+            messageFilePath = sys.argv[7]
 
         # Setup logger
         log_path = log_dir + "/prod/prod-" + node_id + ".log"
@@ -91,14 +101,10 @@ if __name__ == '__main__':
         lib = RabbitMQLib(node_id)     
 
         # --message-rate 30.0 --replication $SWITCHES --message-file message-data/xml/Cars103.xml --time 150 --replica-min-bytes 200000 --replica-max-wait 5000 --ntopics $TOPICS --topic-check 0.1 --consumer-rate 0.5 --compression gzip --single-consumer --batch-size 16384 --linger 5000 
-        mSizeParams = 'fixed,1000'
+        
         msgID = 0
         nodeID = node_id
-        nTopics  = 2
-        mRate = 30.0
-        tClass = 1
-
-
+  
         # Read the message once and save in cache
         if(messageFilePath != 'None'):
             readMessage = readMessageFromFile(messageFilePath)	

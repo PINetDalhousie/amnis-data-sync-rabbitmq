@@ -6,6 +6,7 @@ import time
 import configparser
 import logging
 import socket
+from random import seed, randint, choice
 from mininet_lib import MininetLib
 from mininet.cli import CLI
 from rabbit_lib import RabbitMQLib
@@ -100,6 +101,29 @@ def trace_wireshark(hosts, title):
                        "-eth1 -w " + filename + " &", shell=True)
         print(output)
 
+def startProducers(hosts, logDir, tClassString, mSizeString, mRate, nTopics, messageFilePath, asyncClients):
+    tClasses = tClassString.split(',')
+    #print("Traffic classes: " + str(tClasses))
+    nodeClassification = {}
+    classID = 1
+    for tClass in tClasses:
+        nodeClassification[classID] = []
+        classID += 1
+    #Distribute nodes among classes
+    for node in hosts:
+        nodeClass = randint(1,len(tClasses))
+        nodeClassification[nodeClass].append(node)
+    i=0
+
+    for nodeList in nodeClassification.values():
+        for node in nodeList:
+            node_id = str(node.name)[1:] 
+            if asyncClients:   
+                h.popen("python3 rabbit_producer_async.py " + node_id+ " " + logDir + " &", shell=True)
+            else:
+                h.popen("python3 rabbit_producer.py " + node_id+ " " + logDir + " " + tClasses[i] + " " + mSizeString + " " + str(mRate) + " " + str(nTopics) + " " + str(messageFilePath) + " &", shell=True)
+        i += 1
+
 if __name__ == '__main__':
 
     # Set logger
@@ -115,6 +139,11 @@ if __name__ == '__main__':
     queue_type = config.get('Simulation', 'queue_type')
     wireshark_capture = config.getboolean('Simulation', 'wireshark_capture')
     async_clients = config.getboolean('Simulation', 'async_clients')
+    traffic_classes = config.get('Simulation', 'traffic_classes')
+    message_size = config.get('Simulation', 'message_size')
+    message_rate = config.getfloat('Simulation', 'message_rate')
+    num_topics  = config.getint('Simulation', 'num_topics')
+    message_file = config.get('Simulation', 'message_file')
     disconnect_random = config.getint('Disconnect', 'disconnect_random')
     disconnect_hosts = config.get('Disconnect', 'disconnect_hosts')
     disconnect_duration = config.getint('Disconnect', 'disconnect_duration')
@@ -191,12 +220,13 @@ if __name__ == '__main__':
 
     # Run producers
     print("Starting producers")
-    for h in mininet.net.hosts:   
-        node_id = str(h.name)[1:]  
-        if async_clients:   
-            h.popen("python3 rabbit_producer_async.py " + node_id+ " " + LOG_DIR + " &", shell=True)
-        else:
-            h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
+    startProducers(mininet.net.hosts, LOG_DIR, traffic_classes, message_size, message_rate, num_topics, message_file, async_clients)
+    #for h in mininet.net.hosts:   
+    #    node_id = str(h.name)[1:]  
+    #    if async_clients:   
+    #        h.popen("python3 rabbit_producer_async.py " + node_id+ " " + LOG_DIR + " &", shell=True)
+    #    else:
+    #        h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
 
     # Set up disconnect
     if is_disconnect:
@@ -241,7 +271,7 @@ if __name__ == '__main__':
     os.system("python3 plot-scripts/modifiedLatencyPlotScript.py --number-of-switches " + str(switches) + " --log-dir " + LOG_DIR + "/")
     run_bandwidth_plot(switches)
     if async_clients:
-        os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic 2")
+        os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic " + str(num_topics))
         os.system("sudo mv msg-delivery/ " + LOG_DIR + "/" )   
         os.system("sudo mv failed-messages/ " + LOG_DIR + "/")   
         os.system("sudo mv broker-confirmation/ " + LOG_DIR + "/")   
