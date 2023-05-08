@@ -114,6 +114,7 @@ if __name__ == '__main__':
     prefetch_count = config.getint('Simulation', 'prefetch_count')
     queue_type = config.get('Simulation', 'queue_type')
     wireshark_capture = config.getboolean('Simulation', 'wireshark_capture')
+    async_clients = config.getboolean('Simulation', 'async_clients')
     disconnect_random = config.getint('Disconnect', 'disconnect_random')
     disconnect_hosts = config.get('Disconnect', 'disconnect_hosts')
     disconnect_duration = config.getint('Disconnect', 'disconnect_duration')
@@ -173,8 +174,11 @@ if __name__ == '__main__':
     print("Starting consumers")    
     for h in mininet.net.hosts:
         node_id = str(h.name)[1:]
-        h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR +  " " + str(prefetch_count) + " &", shell=True)        
-        #h.popen("python3 rabbit_consumer_async.py " + node_id + " " + LOG_DIR + " &", shell=True)        
+        if async_clients:
+            h.popen("python3 rabbit_consumer_async.py " + node_id + " " + LOG_DIR + " &", shell=True)
+        else:
+            h.popen("python3 rabbit_consumer.py " + node_id + " " + LOG_DIR +  " " + str(prefetch_count) + " &", shell=True)        
+        
 
     # Let consumers settle before sending messages
     sleep_duration = 30
@@ -188,9 +192,11 @@ if __name__ == '__main__':
     # Run producers
     print("Starting producers")
     for h in mininet.net.hosts:   
-        node_id = str(h.name)[1:]     
-        h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
-        #h.popen("python3 rabbit_producer_async.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
+        node_id = str(h.name)[1:]  
+        if async_clients:   
+            h.popen("python3 rabbit_producer_async.py " + node_id+ " " + LOG_DIR + " &", shell=True)
+        else:
+            h.popen("python3 rabbit_producer.py " + node_id+ " " + LOG_DIR + " &", shell=True)        
 
     # Set up disconnect
     if is_disconnect:
@@ -234,10 +240,11 @@ if __name__ == '__main__':
     switches = len(mininet.net.hosts)
     os.system("python3 plot-scripts/modifiedLatencyPlotScript.py --number-of-switches " + str(switches) + " --log-dir " + LOG_DIR + "/")
     run_bandwidth_plot(switches)
-    os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic 2")
-    os.system("sudo mv msg-delivery/ " + LOG_DIR + "/" )   
-    os.system("sudo mv failed-messages/ " + LOG_DIR + "/")   
-    os.system("sudo mv broker-confirmation/ " + LOG_DIR + "/")   
+    if async_clients:
+        os.system("python3 plot-scripts/messageHeatMap.py --log-dir " + LOG_DIR + "/" + " --prod " + str(switches) + " --cons " + str(switches) + " --topic 2")
+        os.system("sudo mv msg-delivery/ " + LOG_DIR + "/" )   
+        os.system("sudo mv failed-messages/ " + LOG_DIR + "/")   
+        os.system("sudo mv broker-confirmation/ " + LOG_DIR + "/")   
 
     if wireshark_capture:
         print("Moving wireshark pcaps")
