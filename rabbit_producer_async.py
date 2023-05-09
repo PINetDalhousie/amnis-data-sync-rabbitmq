@@ -251,7 +251,7 @@ class ExamplePublisher(object):
 
         """
         logging.info('Declaring queue %s', queue_name)
-        self._channel.queue_declare(queue=queue_name, durable=True, exclusive=False, auto_delete=False, arguments={"x-queue-type":"quorum"},
+        self._channel.queue_declare(queue=queue_name, durable=True, exclusive=False, auto_delete=False, arguments={"x-queue-type":self.queue_type},
                                     callback=self.on_queue_declareok)
 
     def on_queue_declareok(self, _unused_frame):
