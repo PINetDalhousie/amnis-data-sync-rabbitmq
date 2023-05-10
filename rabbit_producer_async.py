@@ -472,7 +472,7 @@ if __name__ == '__main__':
         config.read('config/config.ini')
         queue_type = config.get('Simulation', 'queue_type')
         single_queue = config.getboolean('Simulation', 'single_queue')
-        publish_interval = config.getint('Simulation', 'publish_interval')
+        publish_interval = 1.0/config.getfloat('Simulation', 'message_rate')
         num_topics = config.getint('Simulation', 'num_topics')
         nTopics = num_topics
 
