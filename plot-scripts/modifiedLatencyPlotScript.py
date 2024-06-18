@@ -366,7 +366,7 @@ def plotLatencyCDF():
                   "alpha": 0.7,
                   'label':'Kernel Density Estimation Plot',
                   'cumulative': True}
-    #sns.distplot(latencyYAxis, hist_kws=hist_kwargs, kde_kws=kde_kwargs)
+    # sns.distplot(latencyYAxis, hist_kws=hist_kwargs, kde_kws=kde_kwargs)
     sns.ecdfplot(latencyYAxis)
     
     # Add labels
@@ -411,8 +411,8 @@ clearExistingPlot()
 plotConsTopicLactencyScatter(switches)
 clearExistingPlot()
 
-# latencyLog = open(logDir+"/latency-log.txt", "a")
-# latencyLog.write("Produced messages: " + str(prodCount) + "\n")
-# latencyLog.write("Consumed messages: " + str(consCount) + "\n")
+latencyLog = open(logDir+"/latency-log.txt", "a")
+latencyLog.write("Produced messages: " + str(prodCount) + "\n")
+latencyLog.write("Consumed messages: " + str(consCount) + "\n")
 # latencyLog.write("Percentage of extra latency message: " + str( "{:.2f}".format((extraLatencyMessage/consCount) * 100)) + "%")
-# latencyLog.close()
+latencyLog.close()

@@ -72,6 +72,7 @@ def setup_logging():
     os.system("mkdir "+ LOG_DIR +"/cons")    
     os.system("mkdir "+ LOG_DIR +"/prod")
     os.system("mkdir " + LOG_DIR + "/bandwidth")
+    
 
     # Setup logger
     filename = LOG_DIR + "/events.log"

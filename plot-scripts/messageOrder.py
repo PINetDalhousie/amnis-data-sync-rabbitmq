@@ -68,7 +68,7 @@ def convertTimeToMilliseconds(timeString):
 print("Computing message order")
 
 for consumedMsg in consData[0]:	
-	
+	# print(consumedMsg)
 	if( int(consumedMsg[3]) == params['topic_id'] ):
 		#print(prodID)
 		if int(consumedMsg[4]) in commitID:
@@ -82,10 +82,10 @@ for consumedMsg in consData[0]:
 		prodTimeMilliseconds = convertTimeToMilliseconds(prodTime)
 		
 		#TODO: parse disconnection/reconnection times from log
-		disconnTime = "2022-11-04 17:04:13,67"
+		disconnTime = "2023-08-29 18:42:56,474257"
 		disconnTimeMilliseconds = convertTimeToMilliseconds(disconnTime)
 		
-		reconnTime = "2022-11-04 17:05:13,74"
+		reconnTime = "2023-08-29 18:43:56,533736"
 		reconnTimeMilliseconds = convertTimeToMilliseconds(reconnTime)
 
 		if prodTimeMilliseconds < disconnTimeMilliseconds: 
@@ -96,7 +96,7 @@ for consumedMsg in consData[0]:
 			prodInterval.append(255) 
 	
 
-os.makedirs("msg-order", exist_ok=True)
+os.makedirs(args.logDir+"msg-order", exist_ok=True)
 
 #Plot commit offset order for different producers
 plt.xlabel('Commit offset')
@@ -104,7 +104,7 @@ plt.ylabel('Message ID')
 
 plt.scatter(commitID, msgID, c=prodID)
 
-plt.savefig("msg-order/consumer-1.png",format='png', bbox_inches="tight")
+plt.savefig(args.logDir+"msg-order/consumer-1.png",format='png', bbox_inches="tight")
 
 plt.cla()
 plt.clf()  
@@ -116,31 +116,4 @@ plt.ylabel('Message ID')
 
 plt.scatter(commitID, msgID, c=prodInterval)
 	
-plt.savefig("msg-order/consumer-1-intervals.png",format='png', bbox_inches="tight")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+plt.savefig(args.logDir+"msg-order/consumer-1-intervals.png",format='png', bbox_inches="tight")

@@ -41,8 +41,14 @@ for producer in range(params['num_producers']):
 		confirmationHeatData.append(int(confirmation[1]))
 
 	dfConf = pd.DataFrame(confirmationHeatData, columns=["Prod"])
-
-	sns.heatmap(dfConf.T)
+	
+	try:
+		sns.heatmap(dfConf.T)
+	# If there are no broker confirmations, skip this producer
+	except ValueError as e:
+		print("No broker confirmations for producer "+str(producer+1)+". Skipping...")
+		print("Exception: "+str(e))
+		pass
 
 	plt.xlabel('Message ID')
 	plt.title("Producer " + str(producer+1) + "- Broker confirmations")
@@ -150,7 +156,12 @@ for producer in range(params['num_producers']):
 	#Plot heatmap
 	df = pd.DataFrame(rawHeatData, columns=[i for i in range(len(prodData[producer]))])
 
-	sns.heatmap(df)
+	try:
+		sns.heatmap(df)
+	except ValueError as e:
+		print("No messages received for producer "+str(producer+1)+". Skipping...")
+		print("Exception: "+str(e))
+		pass
 
 	plt.xlabel('Message ID')
 	plt.ylabel('Consumer')

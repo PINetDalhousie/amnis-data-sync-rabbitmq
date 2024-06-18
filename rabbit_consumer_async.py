@@ -323,7 +323,7 @@ class ExampleConsumer(object):
         prod_id = properties.app_id
         message_id = properties.message_id
         topic = basic_deliver.routing_key.split(".")[1]        
-        log = "Prod ID: " + prod_id + "; Message ID: " + message_id + "; Latest: False; Topic: " + topic + "; Offset: 0; Size 1000"    
+        log = "Prod ID: " + prod_id + "; Message ID: " + message_id + "; Latest: False; Topic: " + topic + "; Offset: "+ str(basic_deliver.delivery_tag+1)+ "; Size 1000"    
         logging.info(log)
         #logging.info('Received message # %s from %s: %s',basic_deliver.delivery_tag, properties.app_id, body)
         self.acknowledge_message(basic_deliver.delivery_tag)
